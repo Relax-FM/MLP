@@ -59,14 +59,23 @@ class PreDataLoader(Dataset):
 
     def create_exit_data(self):
         prediction = []
-        label = []
+        label = [] if self.label_size>1 else 0
+        # if (self.label_size>1):
+        #     label=[]
+        # elif (self.label_size == 1):
+        #     label = 0
+        # else:
+        #     raise Exception('Нет информации о лейбах')
         for i in range(self.start, self.stop-self.candle_count):
             for j in range(self.pred_size-1):
                 for k in range(self.candle_count):
                     prediction.append(self.data.iloc[:, j][i+k])
             prediction.append(self.data.iloc[:, self.pred_size-1][i+self.candle_count-1])
             for j in range(self.label_size):
-                label.append(self.data.iloc[:, j+self.pred_size][i+self.candle_count-1])
+                if (self.label_size == 1):
+                    label = self.data.iloc[:, j+self.pred_size][i+self.candle_count-1]
+                else:
+                    label.append(self.data.iloc[:, j+self.pred_size][i+self.candle_count-1])
             self.predictions.append(prediction)
             self.labels.append(label)
             label = []

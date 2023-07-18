@@ -46,15 +46,15 @@ if __name__ == '__main__':
     """
     Date,Open,High,Low,Close,EMA200,Assets,Take_profit,Stop_loss
     """
-    # TODO: выложить на гит и расфорчить для одного выхода.
+
     # TODO: Отдебажить с мнистом (сравнить).
     # TODO: 1) - Дебагинг НС в python.
     batch_size = 25 # Кол-во элементов в баче
     candle_count = 50 # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = 75 # Размер скрытого слоя
-    output_layer_size = 2 # размер выходного слоя
+    output_layer_size = 1# размер выходного слоя
     info_label_size = 4 # Кол-во столбцов с параметрами свечи
-    correct_label_size = 2 # Кол-во столбцов с ответами в датасете
+    correct_label_size = 1# Кол-во столбцов с ответами в датасете
     start_position = 200 # Начальная позиция датасета
     stop_position = 360 # Конечная позиция датасета
 
@@ -78,8 +78,8 @@ if __name__ == '__main__':
 
     loss_func = nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    #optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
 
     device = 'cpu'  # 'cpu'
     model = model.to(device)
