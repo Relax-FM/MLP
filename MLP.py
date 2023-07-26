@@ -116,7 +116,7 @@ if __name__ == '__main__':
         for info, label in dataloader:
             optimizer.zero_grad()  # Обнуляем градиенты, чтобы они не помешали нам на прогоне новой картинки
 
-            img = info.to(device)
+            info = info.to(device)
             label = label.to(device)
             # label = F.one_hot(label,10).float()
             pred = model(info)
