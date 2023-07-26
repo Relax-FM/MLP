@@ -68,8 +68,8 @@ if __name__ == '__main__':
     output_layer_size = 1  # размер выходного слоя
     info_label_size = 4  # Кол-во столбцов с параметрами свечи
     correct_label_size = 1  # Кол-во столбцов с ответами в датасете
-    start_position = 200  # Начальная позиция датасета
-    stop_position = 360  # Конечная позиция датасета
+    start_position = 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+    stop_position = 360  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
 
     candles_params_count = 3 # Кол-во столбцов с параметрами свечи
     additional_params_count = 1 # Дополнительный столбец с параметрами свечи
@@ -77,8 +77,8 @@ if __name__ == '__main__':
     dataset_MSFT = dataload_xlsx('test')  # Грузим датасет из файла 'test'
 
     DL = PreDataLoader(data=dataset_MSFT, pred_size=info_label_size, label_size=correct_label_size,
-                       candle_count=candle_count, start=start_position, stop=stop_position)
-    DL.create_exit_data()
+                       candle_count=candle_count, start=start_position, stop=stop_position, normalization_label=False,
+                       normalization_pred=True)
     batches = DL.get_data()
     #print(batches)
     dataset = NSDAQDataSet(batches)
