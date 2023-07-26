@@ -102,26 +102,25 @@ if __name__ == '__main__':
 
     use_amp = True
 
-    epochs = 2000
-    counter = 0
+    epochs = 1500
+    count = 0
     losses = []
     accuracies = []
     start_time = time.time()
 
     for epoch in range(epochs):
-        counter += 1
+        count += 1
         loss_val = 0
         acc_val = 0
         loss_my = 0
         for info, label in dataloader:
             optimizer.zero_grad()  # Обнуляем градиенты, чтобы они не помешали нам на прогоне новой картинки
 
-            info = info.to(device)
+            img = info.to(device)
             label = label.to(device)
-
             # label = F.one_hot(label,10).float()
             pred = model(info)
-            pred = pred.reshape((pred.shape[0]))
+
             # print(pred)
             # print(label)
             # print(img)
@@ -137,17 +136,18 @@ if __name__ == '__main__':
 
             optimizer.step()  # Сделали шаг градиентным спуском с учетом градиента посчитанного loss.backward()
 
-            acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=10)
+            acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=0.5)
             acc_val += acc_current
 
-            # смотрим какая ошибка на одной картинке loss_item
-        print(f'epoch: {counter}\tloss: {loss_my / 110}\tacuraccy: {acc_val / 110}')
+        # смотрим какая ошибка на одной картинке loss_item
+        print(f'epoch: {count}\tloss: {loss_my / 110}\tacuraccy: {acc_val / 110}')
         accuracies.append(acc_val / 110)
         losses.append(loss_my / 110)
-        # print(loss_val/len(dataloader)) # средняя ошибка после одной эпохи обучения
-        # print(acc_val/len(dataloader))
     print(f'Full time learning : {time.time() - start_time}')
     torch.save(model.state_dict(), 'model.pth')
+
+
+
 
     h = np.linspace(1, 2000, 2000)
 

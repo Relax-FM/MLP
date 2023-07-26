@@ -58,12 +58,13 @@ class PreDataLoader(Dataset):
         self.predictions = []
         self.labels = []
         self.butches = []
-        if (normalization_pred == True) and (normalization_label==False):
-            self.minmax_normalization(flag=0)
-        elif (normalization_label == True) and (normalization_pred == False):
-            self.minmax_normalization(flag=1)
-        elif (normalization_label == True) and (normalization_pred == True):
-            self.minmax_normalization(flag=2)
+        self.normalization_pred = normalization_pred
+        # if (normalization_pred == True) and (normalization_label==False):
+        #     self.minmax_normalization(flag=0)
+        # elif (normalization_label == True) and (normalization_pred == False):
+        #     self.minmax_normalization(flag=1)
+        # elif (normalization_label == True) and (normalization_pred == True):
+        #     self.minmax_normalization(flag=2)
         self.create_exit_data()
 
     def minmax_normalization(self, flag=0):
@@ -87,6 +88,7 @@ class PreDataLoader(Dataset):
 
 
     def create_exit_data(self):
+        '''Not availaible now'''
         prediction = []
         label = [] if self.label_size>1 else 0
         # if (self.label_size>1):
@@ -105,6 +107,13 @@ class PreDataLoader(Dataset):
                     label = self.data.iloc[:, j+self.pred_size+self.label_offset][i+self.candle_count-1]
                 else:
                     label.append(self.data.iloc[:, j+self.pred_size+self.label_offset][i+self.candle_count-1])
+
+            if(self.normalization_pred == True):
+                max0 = max(prediction[0:2*self.candle_count])
+                min0 = min(prediction[0:2*self.candle_count])
+                for i in range(len(prediction)):
+                    prediction[i] = (prediction[i]-min0)/(max0-min0)
+
             self.predictions.append(prediction)
             self.labels.append(label)
             label = []
