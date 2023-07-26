@@ -13,10 +13,10 @@ if __name__ == '__main__':
     batch_size = 25  # Кол-во бачей
     candle_count = 50  # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = 75  # Размер скрытого слоя
-    output_layer_size = 2  # размер выходного слоя
+    output_layer_size = 1  # размер выходного слоя
     info_label_size = 4  # Кол-во столбцов с параметрами свечи
-    correct_label_size = 2  # Кол-во столбцов с ответами в датасете
-    start_position = 300  # Начальная позиция датасета
+    correct_label_size = 1  # Кол-во столбцов с ответами в датасете
+    start_position = 250  # Начальная позиция датасета
     stop_position = 360  # Конечная позиция датасета
 
     candles_params_count = 3  # Кол-во столбцов с параметрами свечи
