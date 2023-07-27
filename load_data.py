@@ -120,7 +120,7 @@ class PreDataLoader(Dataset):
             prediction = []
 
     def __iter__(self):
-        self.i=-1
+        self.i = -1
         return self
 
     def __next__(self):
