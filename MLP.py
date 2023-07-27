@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
-import torch.nn.functional as F
-from tqdm import tqdm
-from torch.cuda.amp import autocast, GradScaler
 import time
-from load_data import dataload_csv, dataload_xlsx, PreDataLoader
+from load_data import dataload_xlsx, PreDataLoader
 from Dataset import NSDAQDataSet
 
 class NN_Nasdaq(nn.Module):
@@ -78,8 +75,7 @@ if __name__ == '__main__':
     dataset_MSFT = dataload_xlsx('test')  # Грузим датасет из файла 'test'
 
     DL = PreDataLoader(data=dataset_MSFT, pred_size=info_label_size, label_size=correct_label_size,
-                       candle_count=candle_count, start=start_position, stop=stop_position, normalization_label=False,
-                       normalization_pred=True)
+                       candle_count=candle_count, start=start_position, stop=stop_position)
     batches = DL.get_data()
     #print(batches)
     dataset = NSDAQDataSet(batches)
@@ -97,7 +93,7 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    device = 'cuda'  # 'cpu'
+    device = 'cpu'  # 'cpu'
     model = model.to(device)
     loss_func = loss_func.to(device)
 
