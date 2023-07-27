@@ -111,7 +111,7 @@ class PreDataLoader(Dataset):
             if(self.normalization_pred == True):
                 max0 = max(prediction[0:2*self.candle_count])
                 min0 = min(prediction[0:2*self.candle_count])
-                for i in range(len(prediction)):
+                for i in range(len(prediction)-1):
                     prediction[i] = (prediction[i]-min0)/(max0-min0)
 
             self.predictions.append(prediction)

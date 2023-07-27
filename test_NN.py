@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
     model = NN_Nasdaq(input_size=candle_count * candles_params_count + additional_params_count, hidden_size=hidden_layer_size, output_size=output_layer_size)
     model.load_state_dict(torch.load('model.pth'))
+    ''' Вот здесь менять model.pth на model1.pth, чтобы перейти от take-profit к stop-loss'''
 
     dataset_MSFT = dataload_xlsx('test')  # Грузим датасет из файла 'test'
 
