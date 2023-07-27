@@ -33,6 +33,7 @@ class NN_Nasdaq(nn.Module):
         out = self.linear2(out)
         out = self.act_func(out)
         out = self.linear3(out)
+        out = out.reshape((out.shape[0]))
         return out
 
 def accuracy(pred, label, epsilon=1):
@@ -136,7 +137,7 @@ if __name__ == '__main__':
 
             optimizer.step()  # Сделали шаг градиентным спуском с учетом градиента посчитанного loss.backward()
 
-            acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=0.5)
+            acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=0.1)
             acc_val += acc_current
 
         # смотрим какая ошибка на одной картинке loss_item
