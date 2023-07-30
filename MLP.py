@@ -60,6 +60,8 @@ if __name__ == '__main__':
 
     # TODO: Отдебажить с мнистом (сравнить).
     # TODO: 1) - Дебагинг НС в python.
+
+    device = 'cpu'  # 'cpu'
     batch_size = 25  # Кол-во элементов в баче
     candle_count = 50  # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = 25  # Размер скрытого слоя
@@ -68,7 +70,7 @@ if __name__ == '__main__':
     correct_label_size = 1  # Кол-во столбцов с ответами в датасете
     start_position = 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
     stop_position = 350  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
-    label_offset = 0 # 0 - take-profit 1 - stop-loss
+    label_offset = 1 # 0 - take-profit 1 - stop-loss
     ''' 0 - take-profit 1 - stop-loss '''
 
 
@@ -85,7 +87,7 @@ if __name__ == '__main__':
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size,
-        shuffle=False, num_workers=1
+        shuffle=False, num_workers=0
     )
 
     model = NN_Nasdaq(input_size=candle_count * candles_params_count + additional_params_count, hidden_size=hidden_layer_size, output_size=output_layer_size)
@@ -96,7 +98,6 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    device = 'cpu'  # 'cpu'
     model = model.to(device)
     loss_func = loss_func.to(device)
 
@@ -144,7 +145,8 @@ if __name__ == '__main__':
         accuracies.append(acc_val / 110)
         losses.append(loss_my / 110)
     print(f'Full time learning : {time.time() - start_time}')
-    torch.save(model.state_dict(), 'model.pth')
+    path_name = 'model_take_profit_'+device+'.pth' if label_offset == 0 else 'model_stop_loss_'+device+'.pth'
+    torch.save(model.state_dict(), path_name)
 
 
 
