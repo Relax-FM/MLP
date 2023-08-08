@@ -80,7 +80,6 @@ if __name__ == '__main__':
     candle_count = dataset_options['candle_count']  # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = network_options['hidden_layer_size']  # Размер скрытого слоя
     output_layer_size = network_options['output_layer_size']  # размер выходного слоя
-    info_label_size = dataset_options['info_label_size']  # Кол-во столбцов с параметрами свечи
     correct_label_size = dataset_options['correct_label_size']  # Кол-во столбцов с ответами в датасете
     start_position = dataset_options['start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
     stop_position = dataset_options['stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
@@ -90,6 +89,7 @@ if __name__ == '__main__':
 
     candles_params_count = dataset_options['candles_params_count'] # Кол-во столбцов с параметрами свечи
     additional_params_count = dataset_options['additional_params_count'] # Дополнительный столбец с параметрами свечи
+    info_label_size = candles_params_count + additional_params_count # Кол-во столбцов с параметрами свечи
 
     dataset_MSFT = dataload_xlsx(dataset_options['file_name'])  # Грузим датасет из файла 'test'
 
