@@ -29,7 +29,7 @@ class PreDataLoader(Dataset):
     """
     Class for correct load all data
     """
-    def __init__(self, data, pred_size=4, label_size=2, candle_count=50, start=200, stop=350, normalization_pred=True, normalization_label=False, label_offset=0):
+    def __init__(self, data, pred_size=4, label_size=2, candle_count=50, start=200, stop=350, normalization_pred=True, label_offset=0):
         """Create DataLoader for your DataSet
             :Parameters:
                 tickers : str, list

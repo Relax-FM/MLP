@@ -3,8 +3,12 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import yaml
 from load_data import dataload_xlsx, PreDataLoader
-from Dataset import NSDAQDataSet
+from Dataset import NASDAQDataSet
+from torch.cuda.amp import autocast, GradScaler
+from optimizer import get_optimizer
+from losses import get_losser
 
 class NN_Nasdaq(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -38,7 +42,7 @@ def accuracy(pred, label, epsilon=1):
     predict = pred.detach().numpy()
     lbl = label.detach().numpy()
     for i in range(len(label)):
-        accuracy_now = ((lbl[i]-predict[i])/predict[i])*100
+        accuracy_now = (lbl[i]-predict[i])*100
         if (accuracy_now<epsilon):
             count+=1
     return count
@@ -61,49 +65,62 @@ if __name__ == '__main__':
     # TODO: Отдебажить с мнистом (сравнить).
     # TODO: 1) - Дебагинг НС в python.
 
-    device = 'cpu'  # 'cpu'
-    batch_size = 25  # Кол-во элементов в баче
-    candle_count = 50  # Кол-во отсматриваемых свечей в баче
-    hidden_layer_size = 25  # Размер скрытого слоя
-    output_layer_size = 1  # размер выходного слоя
-    info_label_size = 4  # Кол-во столбцов с параметрами свечи
-    correct_label_size = 1  # Кол-во столбцов с ответами в датасете
-    start_position = 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-    stop_position = 350  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
-    label_offset = 1 # 0 - take-profit 1 - stop-loss
-    ''' 0 - take-profit 1 - stop-loss '''
+    options_path = 'config.yml'
+    with open(options_path, 'r') as options_stream:
+        options = yaml.safe_load(options_stream)
+
+    network_options = options.get('network')
+    dataset_options = options.get('dataset')
+    optimizer_options = network_options.get('optimizer')
+    losser_options = network_options.get('loss')
+
+    device = network_options['device']  # 'cpu'
+    label_offset = 1 if dataset_options['stop_loss'] else 0
+    batch_size = dataset_options['batch_size']  # Кол-во элементов в баче
+    candle_count = dataset_options['candle_count']  # Кол-во отсматриваемых свечей в баче
+    hidden_layer_size = network_options['hidden_layer_size']  # Размер скрытого слоя
+    output_layer_size = network_options['output_layer_size']  # размер выходного слоя
+    info_label_size = dataset_options['info_label_size']  # Кол-во столбцов с параметрами свечи
+    correct_label_size = dataset_options['correct_label_size']  # Кол-во столбцов с ответами в датасете
+    start_position = dataset_options['start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+    stop_position = dataset_options['stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
 
 
-    candles_params_count = 3 # Кол-во столбцов с параметрами свечи
-    additional_params_count = 1 # Дополнительный столбец с параметрами свечи
 
-    dataset_MSFT = dataload_xlsx('test')  # Грузим датасет из файла 'test'
+
+    candles_params_count = dataset_options['candles_params_count'] # Кол-во столбцов с параметрами свечи
+    additional_params_count = dataset_options['additional_params_count'] # Дополнительный столбец с параметрами свечи
+
+    dataset_MSFT = dataload_xlsx(dataset_options['file_name'])  # Грузим датасет из файла 'test'
 
     DL = PreDataLoader(data=dataset_MSFT, pred_size=info_label_size, label_size=correct_label_size,
-                       candle_count=candle_count, start=start_position, stop=stop_position, label_offset=label_offset)
+                       candle_count=candle_count, start=start_position, stop=stop_position, label_offset=label_offset,
+                       normalization_pred=dataset_options['normalization_pred'])
     batches = DL.get_data()
     #print(batches)
-    dataset = NSDAQDataSet(batches)
+    dataset = NASDAQDataSet(batches)
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size,
-        shuffle=False, num_workers=0
+        shuffle=dataset_options['shuffle'], num_workers=dataset_options['num_workers']
     )
 
     model = NN_Nasdaq(input_size=candle_count * candles_params_count + additional_params_count, hidden_size=hidden_layer_size, output_size=output_layer_size)
 
-    loss_func = nn.MSELoss()
+    loss_func = get_losser(losser_options)
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    optimizer = get_optimizer(model.parameters(), optimizer_options)
 
     model = model.to(device)
     loss_func = loss_func.to(device)
 
-    use_amp = True
+    use_amp = network_options['use_amp']
+    #scaler = torch.cuda.amp.GradScaler()
 
-    epochs = 1500
+    epochs = network_options['epochs']
     count = 0
     losses = []
     accuracies = []
@@ -120,13 +137,10 @@ if __name__ == '__main__':
             info = info.to(device)
             label = label.to(device)
             # label = F.one_hot(label,10).float()
-            pred = model(info)
 
-            # print(pred)
-            # print(label)
-            # print(img)
-
-            loss = loss_func(pred, label)  # посчитали ошибку (значение в label - значение полученое нашим model(img))
+            with autocast(use_amp, dtype = torch.float16):
+                pred = model(info)
+                loss = loss_func(pred, label)  # посчитали ошибку (значение в label - значение полученое нашим model(img))
 
             loss.backward()  # Прошелись по всему графу вычислений и посчитали все градики для нейронов
 
@@ -146,12 +160,13 @@ if __name__ == '__main__':
         losses.append(loss_my / 110)
     print(f'Full time learning : {time.time() - start_time}')
     path_name = 'model_take_profit_'+device+'.pth' if label_offset == 0 else 'model_stop_loss_'+device+'.pth'
+    print(f'Save model as {path_name}')
     torch.save(model.state_dict(), path_name)
 
 
 
 
-    h = np.linspace(1, 1500, 1500)
+    h = np.linspace(1, len(losses), len(losses))
 
     fig, ax = plt.subplots(1, 1, figsize=(13, 9))
     ax.plot(h[:], losses[:])
