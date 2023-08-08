@@ -4,7 +4,7 @@ network:
     hidden_layer_size: 25  # Размер скрытого слоя
     output_layer_size: 1  # размер выходного слоя
     use_amp: False
-    epochs: 150
+    epochs: 1500
 
     optimizer:
         name: 'adam'

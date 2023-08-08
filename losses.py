@@ -24,7 +24,7 @@ def get_losser(option_losser: dict):
         losser = nn.L1Loss()
         print('L1 loss')
     elif name in ('ce', 'crossentropy'):
-        losser = nn.CrossEntropyLossLoss()
+        losser = nn.CrossEntropyLoss()
         print('CrossEntropy loss')
     else:
         raise NotImplementedError(
