@@ -9,6 +9,7 @@ from Dataset import NASDAQDataSet
 from torch.cuda.amp import autocast, GradScaler
 from optimizer import get_optimizer
 from losses import get_losser
+from labels import get_label
 
 class NN_Nasdaq(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -71,18 +72,19 @@ if __name__ == '__main__':
 
     network_options = options.get('network')
     dataset_options = options.get('dataset')
+    dataset_sizes = dataset_options.get('sizes')
     optimizer_options = network_options.get('optimizer')
     losser_options = network_options.get('loss')
 
     device = network_options['device']  # 'cpu'
-    label_offset = 1 if dataset_options['stop_loss'] else 0
+    label_offset = get_label(dataset_options['label_name'])
     batch_size = dataset_options['batch_size']  # Кол-во элементов в баче
     candle_count = dataset_options['candle_count']  # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = network_options['hidden_layer_size']  # Размер скрытого слоя
     output_layer_size = network_options['output_layer_size']  # размер выходного слоя
     correct_label_size = dataset_options['correct_label_size']  # Кол-во столбцов с ответами в датасете
-    start_position = dataset_options['start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-    stop_position = dataset_options['stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
+    start_position = dataset_sizes['start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+    stop_position = dataset_sizes['stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
 
 
 

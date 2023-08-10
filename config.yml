@@ -1,10 +1,10 @@
 network:
     name: 'MLP'
     device: 'cuda' # cuda cpu
-    hidden_layer_size: 25  # Размер скрытого слоя
+    hidden_layer_size: 100  # Размер скрытого слоя       Тестануть с большим количеством
     output_layer_size: 1  # размер выходного слоя
     use_amp: False
-    epochs: 1500
+    epochs: 5000
 
     optimizer:
         name: 'adam'
@@ -18,30 +18,18 @@ network:
 
 dataset:
     file_name: 'test'
-    take_profit: False
+    label_name: 'take_profit'
     normalization_pred: True
-    stop_loss: True
-    batch_size: 25  # Кол-во элементов в баче
+    batch_size: 50 # Кол-во элементов в баче
     candle_count: 50  # Кол-во отсматриваемых свечей в баче
     correct_label_size: 1  # Кол-во столбцов с ответами в датасете
-    start_position: 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-    stop_position: 350 # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
     candles_params_count: 3 # Кол-во столбцов с параметрами свечи
     additional_params_count: 1 # Дополнительный столбец с параметрами свечи
     shuffle: False # Перемешивать ли сущности датасета
     num_workers: 0 # Кол-во каналов записи ДС
 
-test_dataset:
-    file_name: 'test'
-    take_profit: False
-    normalization_pred: True
-    stop_loss: True
-    batch_size: 25  # Кол-во элементов в баче
-    candle_count: 50  # Кол-во отсматриваемых свечей в баче
-    correct_label_size: 1  # Кол-во столбцов с ответами в датасете
-    start_position: 300  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-    stop_position: 362 # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
-    candles_params_count: 3 # Кол-во столбцов с параметрами свечи
-    additional_params_count: 1 # Дополнительный столбец с параметрами свечи
-    shuffle: False # Перемешивать ли сущности датасета
-    num_workers: 0 # Кол-во каналов записи ДС
+    sizes:
+        start_position: 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+        stop_position: 350 # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
+        test_start_position: 300
+        test_stop_position: 362

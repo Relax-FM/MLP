@@ -8,8 +8,7 @@ from load_data import dataload_csv, dataload_xlsx, PreDataLoader
 from Dataset import NASDAQDataSet
 from MLP import NN_Nasdaq
 import yaml
-from optimizer import get_optimizer
-from losses import get_losser
+from labels import get_label
 
 if __name__ == '__main__':
 
@@ -18,19 +17,18 @@ if __name__ == '__main__':
         options = yaml.safe_load(options_stream)
 
     network_options = options.get('network')
-    dataset_options = options.get('test_dataset')
+    dataset_options = options.get('dataset')
+    dataset_sizes = dataset_options.get('sizes')
 
     device = network_options['device']  # 'cpu'
-    label_offset = 1 if dataset_options['stop_loss'] else 0
+    label_offset = get_label(dataset_options['label_name'])
     batch_size = dataset_options['batch_size']  # Кол-во элементов в баче
     candle_count = dataset_options['candle_count']  # Кол-во отсматриваемых свечей в баче
     hidden_layer_size = network_options['hidden_layer_size']  # Размер скрытого слоя
     output_layer_size = network_options['output_layer_size']  # размер выходного слоя
     correct_label_size = dataset_options['correct_label_size']  # Кол-во столбцов с ответами в датасете
-    start_position = dataset_options[
-        'start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-    stop_position = dataset_options[
-        'stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
+    start_position = dataset_sizes['test_start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+    stop_position = dataset_sizes['test_stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
 
     candles_params_count = dataset_options['candles_params_count']  # Кол-во столбцов с параметрами свечи
     additional_params_count = dataset_options['additional_params_count']  # Дополнительный столбец с параметрами свечи
