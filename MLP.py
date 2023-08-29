@@ -10,6 +10,7 @@ from torch.cuda.amp import autocast, GradScaler
 from optimizer import get_optimizer
 from losses import get_losser
 from labels import get_label
+import visualisation_func as vf
 
 class NN_Nasdaq(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -62,9 +63,6 @@ if __name__ == '__main__':
     """
     Date,Open,High,Low,Close,EMA200,Assets,Take_profit,Stop_loss
     """
-
-    # TODO: Отдебажить с мнистом (сравнить).
-    # TODO: 1) - Дебагинг НС в python.
 
     options_path = 'config.yml'
     with open(options_path, 'r') as options_stream:
@@ -126,6 +124,8 @@ if __name__ == '__main__':
     count = 0
     losses = []
     accuracies = []
+    labels = []
+    results = []
     start_time = time.time()
 
     for epoch in range(epochs):
@@ -138,6 +138,7 @@ if __name__ == '__main__':
 
             info = info.to(device)
             label = label.to(device)
+
             # label = F.one_hot(label,10).float()
 
             with autocast(use_amp, dtype = torch.float16):
@@ -156,17 +157,23 @@ if __name__ == '__main__':
             acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=0.1)
             acc_val += acc_current
 
+            labels.append(label.cpu())
+            results.append(pred.cpu())
+
         # смотрим какая ошибка на одной картинке loss_item
         print(f'epoch: {count}\tloss: {loss_my / 110}\tacuraccy: {acc_val / 110}')
         accuracies.append(acc_val / 110)
         losses.append(loss_my / 110)
     print(f'Full time learning : {time.time() - start_time}')
+
     path_name = 'model_take_profit_'+device+'.pth' if label_offset == 0 else 'model_stop_loss_'+device+'.pth'
     print(f'Save model as {path_name}')
     torch.save(model.state_dict(), path_name)
 
-
-
+    avg_lbl, avg_res = vf.average(labels, results)
+    standard_deviation = vf.calculated_standard_deviation(labels, results)
+    error = vf.calculated_error(standard_deviation, avg_lbl)
+    max_error = vf.calculated_max_error(labels, results)
 
     h = np.linspace(1, len(losses), len(losses))
 

@@ -9,6 +9,8 @@ from Dataset import NASDAQDataSet
 from MLP import NN_Nasdaq
 import yaml
 from labels import get_label
+import visualisation_func as vf
+
 
 if __name__ == '__main__':
 
@@ -56,7 +58,21 @@ if __name__ == '__main__':
         shuffle=False, num_workers=0
     )
 
+    labels = []
+    results = []
+
     for info, label in (pbar := tqdm(dataloader)):
         print(label)
-        print(model(info))
+        labels.append(label)
+        result = model(info)
+        results.append(result)
+        print(result)
+        relation = (result/label)*100
+        print(f'Relation is : {relation}%')
         print('#'*30)
+
+    avg_lbl, avg_res = vf.average(labels, results)
+    standard_deviation = vf.calculated_standard_deviation(labels, results)
+    error = vf.calculated_error(standard_deviation, avg_lbl)
+    max_error = vf.calculated_max_error(labels, results)
+

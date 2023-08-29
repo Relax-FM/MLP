@@ -1,25 +1,25 @@
 network:
     name: 'MLP'
     device: 'cuda' # cuda cpu
-    hidden_layer_size: 100  # Размер скрытого слоя       Тестануть с большим количеством
+    hidden_layer_size: 100  # Размер скрытого слоя
     output_layer_size: 1  # размер выходного слоя
-    use_amp: False
-    epochs: 5000
+    use_amp: False # Использование автоматического понижения размера вещественного числа
+    epochs: 5000 # Кол-во эпох прогона ДС
 
     optimizer:
-        name: 'adam'
-        beta1: 0.9
-        beta2: 0.99
-        lr: 1e-3
+        name: 'adam' # Название используемого оптимизатора
+        beta1: 0.9 # Бета 1 для адам оптимизатора
+        beta2: 0.99 # Бета 2 для адам оптимизатора
+        lr: 1e-3 # Шаг оптимизатора
 
     loss:
-        name: 'mse'
+        name: 'mse' # Используемая функция-потерь
 
 
 dataset:
-    file_name: 'test'
-    label_name: 'take_profit'
-    normalization_pred: True
+    file_name: 'test' # Наименование файла с ДС
+    label_name: 'take_profit' # Название параметра по которому осуществляется поиск (take_profit / stop_loss (tp / sl))
+    normalization_pred: True # Нужно ли нормализовать все исходные столбцы ДС (без label столбцов)
     batch_size: 50 # Кол-во элементов в баче
     candle_count: 50  # Кол-во отсматриваемых свечей в баче
     correct_label_size: 1  # Кол-во столбцов с ответами в датасете
@@ -29,7 +29,7 @@ dataset:
     num_workers: 0 # Кол-во каналов записи ДС
 
     sizes:
-        start_position: 200  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
-        stop_position: 350 # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
-        test_start_position: 300
-        test_stop_position: 362
+        start_position: 200  # Начальная позиция обучающего датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+        stop_position: 350 # Конечная позиция обучащего датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
+        test_start_position: 300 # Начальная позиция тестового датасета
+        test_stop_position: 362 # Конечная позиция тестового обучащего датасета
