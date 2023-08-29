@@ -166,14 +166,18 @@ if __name__ == '__main__':
         losses.append(loss_my / 110)
     print(f'Full time learning : {time.time() - start_time}')
 
+    print(labels)
+    print(results)
+    labels_np = labels.numpy()
+    results_np = results.numpy()
+    avg_lbl, avg_res = vf.average(labels_np, results_np)
+    standard_deviation = vf.calculated_standard_deviation(labels_np, results_np)
+    error = vf.calculated_error(standard_deviation, avg_lbl)
+    max_error = vf.calculated_max_error(labels_np, results_np)
+
     path_name = 'model_take_profit_'+device+'.pth' if label_offset == 0 else 'model_stop_loss_'+device+'.pth'
     print(f'Save model as {path_name}')
     torch.save(model.state_dict(), path_name)
-
-    avg_lbl, avg_res = vf.average(labels, results)
-    standard_deviation = vf.calculated_standard_deviation(labels, results)
-    error = vf.calculated_error(standard_deviation, avg_lbl)
-    max_error = vf.calculated_max_error(labels, results)
 
     h = np.linspace(1, len(losses), len(losses))
 

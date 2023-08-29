@@ -63,13 +63,16 @@ if __name__ == '__main__':
 
     for info, label in (pbar := tqdm(dataloader)):
         print(label)
-        labels.append(label)
+        labels.append(label.detach().numpy()[0])
         result = model(info)
-        results.append(result)
+        results.append(result.detach().numpy()[0])
         print(result)
         relation = (result/label)*100
         print(f'Relation is : {relation}%')
         print('#'*30)
+
+    print(labels)
+    print(results)
 
     avg_lbl, avg_res = vf.average(labels, results)
     standard_deviation = vf.calculated_standard_deviation(labels, results)
