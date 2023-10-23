@@ -1,11 +1,16 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from tqdm import tqdm
-from torch.cuda.amp import autocast, GradScaler
+import numpy as np
+import matplotlib.pyplot as plt
 import time
-from load_data import dataload_csv, dataload_xlsx, PreDataLoader
-from Dataset import NSDAQDataSet
+import yaml
+from load_data import dataload_xlsx, PreDataLoader
+from Dataset import NASDAQDataSet
+from torch.cuda.amp import autocast, GradScaler
+from optimizer import get_optimizer
+from losses import get_losser
+from labels import get_label
+import visualisation_func as vf
 
 class NN_Nasdaq(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -31,110 +36,163 @@ class NN_Nasdaq(nn.Module):
         out = self.linear2(out)
         out = self.act_func(out)
         out = self.linear3(out)
+        out = out.reshape((out.shape[0]))
         return out
 
-def accuracy(pred, label):
-    answer = F.softmax(pred.detach()).numpy().argmax(1) == label.numpy().argmax(1)
-    # print(answer.shape)
-    # print(answer)
-    # print(answer.sum())
-    # return answer.sum()
-    return answer.mean()
+def accuracy(pred, label, epsilon=1):
+    count = 0
+    predict = pred.detach().numpy()
+    lbl = label.detach().numpy()
+    for i in range(len(label)):
+        accuracy_now = (lbl[i]-predict[i])*100
+        if (accuracy_now<epsilon):
+            count+=1
+    return count
+
+def lossing(pred,label):
+    count = 0
+    predict = pred.detach().numpy()
+    lbl = label.detach().numpy()
+    for i in range(len(label)):
+        loss_now = np.abs(lbl[i]-predict[i])
+        count += loss_now
+    return count
 
 if __name__ == '__main__':
 
     """
     Date,Open,High,Low,Close,EMA200,Assets,Take_profit,Stop_loss
     """
-    # TODO: выложить на гит и расфорчить для одного выхода.
-    # TODO: Отдебажить с мнистом (сравнить).
-    # TODO: 1) - Дебагинг НС в python.
-    batch_size = 25 # Кол-во элементов в баче
-    candle_count = 50 # Кол-во отсматриваемых свечей в баче
-    hidden_layer_size = 75 # Размер скрытого слоя
-    output_layer_size = 2 # размер выходного слоя
-    info_label_size = 4 # Кол-во столбцов с параметрами свечи
-    correct_label_size = 2 # Кол-во столбцов с ответами в датасете
-    start_position = 200 # Начальная позиция датасета
-    stop_position = 360 # Конечная позиция датасета
 
-    candles_params_count = 3 # Кол-во столбцов с параметрами свечи
-    additional_params_count = 1 # Дополнительный столбец с параметрами свечи
+    options_path = 'config.yml'
+    with open(options_path, 'r') as options_stream:
+        options = yaml.safe_load(options_stream)
 
-    dataset_MSFT = dataload_xlsx('test')  # Грузим датасет из файла 'test'
+    network_options = options.get('network')
+    dataset_options = options.get('dataset')
+    dataset_sizes = dataset_options.get('sizes')
+    optimizer_options = network_options.get('optimizer')
+    losser_options = network_options.get('loss')
 
-    DL = PreDataLoader(data=dataset_MSFT, pred_size=info_label_size, label_size=correct_label_size, candle_count=candle_count, start=start_position, stop=stop_position)
-    DL.create_exit_data()
+    device = network_options['device']  # 'cpu'
+    label_offset = get_label(dataset_options['label_name'])
+    batch_size = dataset_options['batch_size']  # Кол-во элементов в баче
+    candle_count = dataset_options['candle_count']  # Кол-во отсматриваемых свечей в баче
+    hidden_layer_size = network_options['hidden_layer_size']  # Размер скрытого слоя
+    output_layer_size = network_options['output_layer_size']  # размер выходного слоя
+    correct_label_size = dataset_options['correct_label_size']  # Кол-во столбцов с ответами в датасете
+    start_position = dataset_sizes['start_position']  # Начальная позиция датасета (как бы с 200 позиции но по факту будет создавать для start_position+candle_count)
+    stop_position = dataset_sizes['stop_position']  # Конечная позиция датасета (Правда конечная позиция. Создает датасет до stop_position позиции )
+
+
+
+
+    candles_params_count = dataset_options['candles_params_count'] # Кол-во столбцов с параметрами свечи
+    additional_params_count = dataset_options['additional_params_count'] # Дополнительный столбец с параметрами свечи
+    info_label_size = candles_params_count + additional_params_count # Кол-во столбцов с параметрами свечи
+
+    dataset_MSFT = dataload_xlsx(dataset_options['file_name'])  # Грузим датасет из файла 'test'
+
+    DL = PreDataLoader(data=dataset_MSFT, pred_size=info_label_size, label_size=correct_label_size,
+                       candle_count=candle_count, start=start_position, stop=stop_position, label_offset=label_offset,
+                       normalization_pred=dataset_options['normalization_pred'])
     batches = DL.get_data()
     #print(batches)
-    dataset = NSDAQDataSet(batches)
+    dataset = NASDAQDataSet(batches)
 
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size,
-        shuffle=False, num_workers=1
+        shuffle=dataset_options['shuffle'], num_workers=dataset_options['num_workers']
     )
 
     model = NN_Nasdaq(input_size=candle_count * candles_params_count + additional_params_count, hidden_size=hidden_layer_size, output_size=output_layer_size)
 
-    loss_func = nn.CrossEntropyLoss()
+    loss_func = get_losser(losser_options)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    #optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
 
-    device = 'cpu'  # 'cpu'
+    optimizer = get_optimizer(model.parameters(), optimizer_options)
+
     model = model.to(device)
     loss_func = loss_func.to(device)
 
-    use_amp = True
+    use_amp = network_options['use_amp']
+    #scaler = torch.cuda.amp.GradScaler()
 
-    epochs = 15
-    counter = 0
+    epochs = network_options['epochs']
+    count = 0
+    losses = []
+    accuracies = []
+    labels = []
+    results = []
     start_time = time.time()
-    # TODO: Отрефакторить
+
     for epoch in range(epochs):
+        count += 1
         loss_val = 0
-        # acc_val = 0
-        epoch_time = time.time()
-        counter = 0
+        acc_val = 0
+        loss_my = 0
+        for info, label in dataloader:
+            optimizer.zero_grad()  # Обнуляем градиенты, чтобы они не помешали нам на прогоне новой картинки
 
-        for info, label in (pbar := tqdm(dataloader)):
-            #print(f"{counter*25}-{(counter+1)*25} data")
-            counter+=1
-            optimizer.zero_grad() # Обнуляем градиенты, чтобы они не помешали нам на прогоне новой картинки
-            info = info.to(device)  # Перенесли свечи на GPU
+            info = info.to(device)
+            label = label.to(device)
+
             # label = F.one_hot(label,10).float()
-            label = label.to(device)  # Перенесли таргет на GPU
 
-            with autocast(use_amp, dtype=torch.float16):
-
+            with autocast(use_amp, dtype = torch.float16):
                 pred = model(info)
+                loss = loss_func(pred, label)  # посчитали ошибку (значение в label - значение полученое нашим model(img))
 
-                loss = loss_func(pred, label) # посчитали ошибку (значение в label - значение полученое нашим model(img))
+            loss.backward()  # Прошелись по всему графу вычислений и посчитали все градики для нейронов
 
-            loss.backward() # Прошелись по всему графу вычислений и посчитали все градики для нейронов
-            # обратное распространение не оборачиваем в автокаст, чтобы его точность не понижалась до флот16 с флот32.
             loss_item = loss.item()
             loss_val += loss_item
+            loss_my_item = lossing(pred.cpu(), label.cpu())
+            loss_my += loss_my_item
 
-            # Получение текущих значений весов
-            # for name, param in model.named_parameters():
-            #     if param.requires_grad:
-            #         print(f"Parameter name: {name}")
-            #         print(f"Weights: {param.data}")
-            #         print()
+            optimizer.step()  # Сделали шаг градиентным спуском с учетом градиента посчитанного loss.backward()
 
-            optimizer.step() # Сделали шаг градиентным спуском с учетом градиента посчитанного loss.backward()
+            acc_current = accuracy(pred.cpu(), label.cpu(), epsilon=0.1)
+            acc_val += acc_current
 
-            #acc_current = accuracy(pred.cpu(), label.cpu())  #pred.cpu().float(), label.cpu().float()
-            #acc_val += acc_current
+            labels.append(label.cpu())
+            results.append(pred.cpu())
 
-            pbar.set_description(f'epoch: {epoch+1}\tloss: {loss_item:.5f}') # смотрим какая ошибка на одном баче  \taccuracy: {acc_current:.3f}
-            #if counter==3:
-            #   break
-        # print(loss_val/100) # средняя ошибка после одной эпохи обучения
-        # print(acc_val/len(dataloader))
-        #print(f'Time for {epoch+1} epoch: {(time.time() - epoch_time):.1f}')
+        # смотрим какая ошибка на одной картинке loss_item
+        print(f'epoch: {count}\tloss: {loss_my / 110}\tacuraccy: {acc_val / 110}')
+        accuracies.append(acc_val / 110)
+        losses.append(loss_my / 110)
+    print(f'Full time learning : {time.time() - start_time}')
 
-    print(f'Full time learning: {(time.time() - start_time):.1f}')
-    torch.save(model.state_dict(), 'model.pth')
+    print(labels)
+    print(results)
+    labels_np = labels.numpy()
+    results_np = results.numpy()
+    avg_lbl, avg_res = vf.average(labels_np, results_np)
+    standard_deviation = vf.calculated_standard_deviation(labels_np, results_np)
+    error = vf.calculated_error(standard_deviation, avg_lbl)
+    max_error = vf.calculated_max_error(labels_np, results_np)
 
+    path_name = 'model_take_profit_'+device+'.pth' if label_offset == 0 else 'model_stop_loss_'+device+'.pth'
+    print(f'Save model as {path_name}')
+    torch.save(model.state_dict(), path_name)
+
+    h = np.linspace(1, len(losses), len(losses))
+
+    fig, ax = plt.subplots(1, 1, figsize=(13, 9))
+    ax.plot(h[:], losses[:])
+    ax.set_title("Loss for epoch.")
+    ax.set_xlabel("Axis epoch")
+    ax.set_ylabel("Axis loss")
+    ax.grid()
+    plt.show()
+
+    fig, ax = plt.subplots(1, 1, figsize=(13, 9))
+    ax.plot(h, accuracies)
+    ax.set_title("accuracy for epoch.")
+    ax.set_xlabel("Axis epoch")
+    ax.set_ylabel("Axis accuracy")
+    ax.grid()
+    plt.show()

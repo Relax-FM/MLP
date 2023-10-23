@@ -1,0 +1,35 @@
+network:
+    name: 'MLP'
+    device: 'cuda'
+    hidden_layer_size: 100
+    output_layer_size: 1
+    use_amp: False
+    epochs: 250
+
+    optimizer:
+        name: 'adam'
+        beta1: 0.9
+        beta2: 0.99
+        lr: 1e-3
+
+    loss:
+        name: 'mse'
+
+
+dataset:
+    file_name: 'test'
+    label_name: 'tp'
+    normalization_pred: True
+    batch_size: 50
+    candle_count: 50
+    correct_label_size: 1
+    candles_params_count: 3
+    additional_params_count: 1
+    shuffle: False
+    num_workers: 0
+
+    sizes:
+        start_position: 200
+        stop_position: 350
+        test_start_position: 300
+        test_stop_position: 363
